@@ -19,10 +19,6 @@ Sbox = (
     0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16,
 )
 
-key = "54 68 61 74 73 20 6D 79 20 4B 75 6E 67 20 46 75"
-keyBytes = key.split(" ")
-keyVector = [ [ BitVector(hexstring=keyBytes[j*4 + i] ) for i in range(0, 4)] for j in range(0, 4)]
-
 def shiftLeft(arr, n):
     old = arr.copy()    
     for i in range(0, len(arr)):
@@ -38,48 +34,74 @@ def subBytes(arr):
     for i in range(0, len(arr)):
         arr[i] = subByte(arr[i])
 
-def getRC(i):
-    if(i == 1):
-        return BitVector(intVal = 1, size = 8)
-    rcPrev = getRC(i-1)
-    val = int(rcPrev.getHexStringFromBitVector(), 16)
-    val = val*2    
-    if(rcPrev.__lt__( BitVector(hexstring="80"))) :
-        return BitVector(intVal=val, size = 8)
-    else:
-        result = BitVector(intVal = val, size = 12)
-        # print(result)
-        test = BitVector(hexstring="11B")
-        # print(test)
-        result = result ^ test
-        strHex = result.getHexStringFromBitVector().upper()[1:3]
-        return BitVector(hexstring = strHex )
-
 def xorList(a, b):
     c = [x for x in a]
     for i in range(0, len(a)):
         c[i] = a[i] ^ b[i]
     return c
 
-def getG(arr, i):
-    shiftLeft(arr, 1)
-    subBytes(arr)
-    arr[0] = arr[0]^getRC(i)
 
-def nextRoundKey(key, round):
-    gFunc = key[3].copy()
-    getG(gFunc, round)
-    newKey = key
-    newKey[0] = xorList(gFunc, key[0])
-    for i in range(1, 4):
-        newKey[i] = xorList(newKey[i-1], key[i])
-    return newKey
+class EncryptionKey:
+    def __init__(self, key):
+        key = key.replace(" ", "")
+        while len(key) < 32:
+            key = key + '0'
+        if len(key) > 32:
+            key = key[0:32]
+        self.key = key
+        keyBytes = []
+        for i in range(0, len(key)//2):
+            keyBytes.append(key[2*i : 2*i+2])
+        # keyBytes = key.split(" ")
+        self.keyVector = [ [ BitVector(hexstring=keyBytes[j*4 + i] ) for i in range(0, 4)] for j in range(0, 4)]
 
-nextKey = keyVector
-for i in range(0, 11):
-    print( str(i) + ": ", end = " ")
-    for x in nextKey:
-        for y in x:
-            print(y.get_hex_string_from_bitvector(), end = " ")
+        self.keys = []
+        self.keys.append(self.keyVector)
+
+    def getRC(self, i):
+        if(i == 1):
+            return BitVector(intVal = 1, size = 8)
+        rcPrev = self.getRC(i-1)
+        val = int(rcPrev.getHexStringFromBitVector(), 16)
+        val = val*2    
+        if(rcPrev.__lt__( BitVector(hexstring="80"))) :
+            return BitVector(intVal=val, size = 8)
+        else:
+            result = BitVector(intVal = val, size = 12)
+            test = BitVector(hexstring="11B")
+            result = result ^ test
+            strHex = result.getHexStringFromBitVector().upper()[1:3]
+            return BitVector(hexstring = strHex )
+
+    def getG(self, arr, i):
+        shiftLeft(arr, 1)
+        subBytes(arr)
+        arr[0] = arr[0]^self.getRC(i)
+
+    def nextRoundKey(self, key, round):
+        gFunc = key[3].copy() 
+        self.getG(gFunc, round)
+        newKey = key
+        newKey[0] = xorList(gFunc, key[0])
+        for i in range(1, 4):
+            newKey[i] = xorList(newKey[i-1], key[i])
+        return newKey
+    
+    def getKey(self, round):
+        while(len(self.keys) <= round ):
+            self.keys.append( self.nextRoundKey( self.keys[ len(self.keys) -1 ], len(self.keys) ) )
+        return self.keys[round]
+        
+    def print(self, round):
+        thisKey = self.getKey(round)
+        for x in thisKey:
+            for y in x:
+                print(y.getHexStringFromBitVector() , end = " ")
+
+key = "54 68 61 74 73 20 6D 79 20 4B 75 6E 67 20 46 75"
+
+test = EncryptionKey(key)
+for x in range(0, 11):
+    test.print(x)
     print()
-    nextKey = nextRoundKey(nextKey, i+1)
+
