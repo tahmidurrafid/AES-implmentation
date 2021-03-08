@@ -34,6 +34,52 @@ def subByte(byteVect):
     vct = BitVector(intVal = Sbox[(int(byteStr[0], 16)* 16 +  int(byteStr[1], 16))], size = 8)
     return vct
 
-for x in keyVector:
-    for y in x:
-        print( subByte(y).getHexStringFromBitVector() )
+def subBytes(arr):
+    for i in range(0, len(arr)):
+        arr[i] = subByte(arr[i])
+
+def getRC(i):
+    if(i == 1):
+        return BitVector(intVal = 1, size = 8)
+    rcPrev = getRC(i-1)
+    val = int(rcPrev.getHexStringFromBitVector(), 16)
+    val = val*2    
+    if(rcPrev.__lt__( BitVector(hexstring="80"))) :
+        return BitVector(intVal=val, size = 8)
+    else:
+        result = BitVector(intVal = val, size = 12)
+        # print(result)
+        test = BitVector(hexstring="11B")
+        # print(test)
+        result = result ^ test
+        strHex = result.getHexStringFromBitVector().upper()[1:3]
+        return BitVector(hexstring = strHex )
+
+def xorList(a, b):
+    c = [x for x in a]
+    for i in range(0, len(a)):
+        c[i] = a[i] ^ b[i]
+    return c
+
+def getG(arr, i):
+    shiftLeft(arr, 1)
+    subBytes(arr)
+    arr[0] = arr[0]^getRC(i)
+
+def nextRoundKey(key, round):
+    gFunc = key[3].copy()
+    getG(gFunc, round)
+    newKey = key
+    newKey[0] = xorList(gFunc, key[0])
+    for i in range(1, 4):
+        newKey[i] = xorList(newKey[i-1], key[i])
+    return newKey
+
+nextKey = keyVector
+for i in range(0, 11):
+    print( str(i) + ": ", end = " ")
+    for x in nextKey:
+        for y in x:
+            print(y.get_hex_string_from_bitvector(), end = " ")
+    print()
+    nextKey = nextRoundKey(nextKey, i+1)
