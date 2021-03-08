@@ -1,4 +1,5 @@
 from BitVector import *
+import copy
 
 Sbox = (
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -40,6 +41,28 @@ def xorList(a, b):
         c[i] = a[i] ^ b[i]
     return c
 
+def transposeMat(a):
+    b = copy.deepcopy(a)
+    for i in range(0, len(b) ):
+        for j in range(0, i+1):
+            x = b[i][j]
+            b[i][j] = b[j][i]
+            b[j][i] = x
+    return b
+
+def printMat(a):
+    for x in a:
+        for y in x:
+            print(y.getHexStringFromBitVector(), end = " ")
+        print()
+
+def textToBitMatrix(text):
+    text = text.replace(" ", "")
+    keyBytes = []
+    for i in range(0, len(text)//2):
+        keyBytes.append(text[2*i : 2*i+2])
+    keyVector = [ [ BitVector(hexstring=keyBytes[j*4 + i] ) for i in range(0, 4)] for j in range(0, 4)]
+    return keyVector
 
 class EncryptionKey:
     def __init__(self, key):
@@ -52,7 +75,6 @@ class EncryptionKey:
         keyBytes = []
         for i in range(0, len(key)//2):
             keyBytes.append(key[2*i : 2*i+2])
-        # keyBytes = key.split(" ")
         self.keyVector = [ [ BitVector(hexstring=keyBytes[j*4 + i] ) for i in range(0, 4)] for j in range(0, 4)]
 
         self.keys = []
@@ -99,9 +121,17 @@ class EncryptionKey:
                 print(y.getHexStringFromBitVector() , end = " ")
 
 key = "54 68 61 74 73 20 6D 79 20 4B 75 6E 67 20 46 75"
+text = "54 77 6F 20 4F 6E 65 20 4E 69 6E 65 20 54 77 6F"
 
 test = EncryptionKey(key)
-for x in range(0, 11):
-    test.print(x)
-    print()
 
+keyVect = test.getKey(0)
+print("====================")
+keyVect = transposeMat(keyVect)
+printMat(keyVect)
+
+print("====================")
+
+textMat = textToBitMatrix(text)
+textMat = transposeMat(textMat)
+printMat(textMat)
