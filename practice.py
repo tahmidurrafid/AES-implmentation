@@ -20,6 +20,14 @@ Sbox = (
     0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16,
 )
 
+AES_modulus = BitVector(bitstring='100011011')
+
+Mixer = [
+    [BitVector(hexstring="02"), BitVector(hexstring="03"), BitVector(hexstring="01"), BitVector(hexstring="01")],
+    [BitVector(hexstring="01"), BitVector(hexstring="02"), BitVector(hexstring="03"), BitVector(hexstring="01")],
+    [BitVector(hexstring="01"), BitVector(hexstring="01"), BitVector(hexstring="02"), BitVector(hexstring="03")],
+    [BitVector(hexstring="03"), BitVector(hexstring="01"), BitVector(hexstring="01"), BitVector(hexstring="02")]
+]
 
 def shiftLeft(arr, n):
     old = arr.copy()    
@@ -68,12 +76,33 @@ def textToBitMatrix(text):
         ret.append(ord(text[i]))
     mat = [ [ BitVector(intVal=ret[j*4 + i], size=8 ) for i in range(0, 4)] for j in range(0, 4)]
     return mat
-    # text = text.replace(" ", "")
-    # keyBytes = []
-    # for i in range(0, len(text)//2):
-    #     keyBytes.append(text[2*i : 2*i+2])
-    # keyVector = [ [ BitVector(hexstring=keyBytes[j*4 + i] ) for i in range(0, 4)] for j in range(0, 4)]
-    # return keyVector
+
+def xorMat(a, b):
+    c = copy.deepcopy(a)
+    for i in range(0, len(a)):
+        for j in range(0, len(a[0])):
+            c[i][j] = a[i][j] ^ b[i][j]
+    return c
+
+def subMat(a):
+    c = copy.deepcopy(a)
+    for i in range(0, len(a)):
+        subBytes(c[i])
+    return c
+
+def shiftMat(a):
+    for i in range(0, len(a)):
+        shiftLeft(a[i], i)
+
+def MixColumn(a, b):
+    x = [[ BitVector(hexstring="00") for i in range(0, 4) ] for j in range(0, 4) ]
+    for i in range(0, 4):
+        for j in range(0, 4):
+            for k in range(0, 4):
+                x[i][j] ^= a[i][k].gf_multiply_modular(b[k][j], AES_modulus, 8)
+    return x
+
+
 
 class EncryptionKey:
     def __init__(self, key):
@@ -121,7 +150,7 @@ class EncryptionKey:
                 print(y.getHexStringFromBitVector() , end = " ")
 
 # key = "54 68 61 74 73 20 6D 79 20 4B 75 6E 67 20 46 75"
-key = "Thats my KungFu"
+key = "Thats my Kung Fu"
 text = "Two One Nine Two"
 
 test = EncryptionKey(key)
@@ -136,3 +165,20 @@ print("====================")
 textMat = textToBitMatrix(text)
 textMat = transposeMat(textMat)
 printMat(textMat)
+
+print("====================")
+mat = xorMat(keyVect, textMat)
+printMat(mat)
+
+print("====================")
+mat = subMat(mat)
+printMat(mat)
+
+print("====================")
+shiftMat(mat)
+printMat(mat)
+
+print("====================")
+mat = MixColumn(Mixer, mat)
+printMat(mat)
+
