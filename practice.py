@@ -20,6 +20,7 @@ Sbox = (
     0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16,
 )
 
+
 def shiftLeft(arr, n):
     old = arr.copy()    
     for i in range(0, len(arr)):
@@ -56,29 +57,28 @@ def printMat(a):
             print(y.getHexStringFromBitVector(), end = " ")
         print()
 
+    
 def textToBitMatrix(text):
-    text = text.replace(" ", "")
-    keyBytes = []
-    for i in range(0, len(text)//2):
-        keyBytes.append(text[2*i : 2*i+2])
-    keyVector = [ [ BitVector(hexstring=keyBytes[j*4 + i] ) for i in range(0, 4)] for j in range(0, 4)]
-    return keyVector
+    ret = []
+    mat = []
+    while len(text) < 16:
+        text = text + '0'
+    text = text[0:16]
+    for i in range(0, len(text)):
+        ret.append(ord(text[i]))
+    mat = [ [ BitVector(intVal=ret[j*4 + i], size=8 ) for i in range(0, 4)] for j in range(0, 4)]
+    return mat
+    # text = text.replace(" ", "")
+    # keyBytes = []
+    # for i in range(0, len(text)//2):
+    #     keyBytes.append(text[2*i : 2*i+2])
+    # keyVector = [ [ BitVector(hexstring=keyBytes[j*4 + i] ) for i in range(0, 4)] for j in range(0, 4)]
+    # return keyVector
 
 class EncryptionKey:
     def __init__(self, key):
-        key = key.replace(" ", "")
-        while len(key) < 32:
-            key = key + '0'
-        if len(key) > 32:
-            key = key[0:32]
-        self.key = key
-        keyBytes = []
-        for i in range(0, len(key)//2):
-            keyBytes.append(key[2*i : 2*i+2])
-        self.keyVector = [ [ BitVector(hexstring=keyBytes[j*4 + i] ) for i in range(0, 4)] for j in range(0, 4)]
-
         self.keys = []
-        self.keys.append(self.keyVector)
+        self.keys.append(textToBitMatrix(key))
 
     def getRC(self, i):
         if(i == 1):
@@ -120,8 +120,9 @@ class EncryptionKey:
             for y in x:
                 print(y.getHexStringFromBitVector() , end = " ")
 
-key = "54 68 61 74 73 20 6D 79 20 4B 75 6E 67 20 46 75"
-text = "54 77 6F 20 4F 6E 65 20 4E 69 6E 65 20 54 77 6F"
+# key = "54 68 61 74 73 20 6D 79 20 4B 75 6E 67 20 46 75"
+key = "Thats my KungFu"
+text = "Two One Nine Two"
 
 test = EncryptionKey(key)
 
