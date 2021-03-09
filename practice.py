@@ -93,6 +93,7 @@ def subMat(a):
 def shiftMat(a):
     for i in range(0, len(a)):
         shiftLeft(a[i], i)
+    return a
 
 def MixColumn(a, b):
     x = [[ BitVector(hexstring="00") for i in range(0, 4) ] for j in range(0, 4) ]
@@ -153,32 +154,51 @@ class EncryptionKey:
 key = "Thats my Kung Fu"
 text = "Two One Nine Two"
 
-test = EncryptionKey(key)
 
-keyVect = test.getKey(0)
-print("====================")
-keyVect = transposeMat(keyVect)
-printMat(keyVect)
+def encrypt(text, key):
+    textMat = transposeMat(textToBitMatrix(text) )
+    enKey = EncryptionKey(key)
+    stateMat = xorMat(textMat, transposeMat( enKey.getKey(0) ) )
+    # printMat(stateMat)
+    # print("=================================")
+    for round in range(1, 10):
+        stateMat = subMat(stateMat)
+        stateMat = shiftMat(stateMat)
+        stateMat = MixColumn(Mixer, stateMat)
+        stateMat = xorMat(stateMat, transposeMat( enKey.getKey(round) ) )
+        # printMat(stateMat)
+        # print("=================================")
+    stateMat = subMat(stateMat)
+    stateMat = shiftMat(stateMat)
+    stateMat = xorMat(stateMat, transposeMat( enKey.getKey(10) ) )
+    printMat(stateMat)    
+encrypt(text, key)
+# test = EncryptionKey(key)
 
-print("====================")
+# keyVect = test.getKey(0)
+# print("====================")
+# keyVect = transposeMat(keyVect)
+# printMat(keyVect)
 
-textMat = textToBitMatrix(text)
-textMat = transposeMat(textMat)
-printMat(textMat)
+# print("====================")
 
-print("====================")
-mat = xorMat(keyVect, textMat)
-printMat(mat)
+# textMat = textToBitMatrix(text)
+# textMat = transposeMat(textMat)
+# printMat(textMat)
 
-print("====================")
-mat = subMat(mat)
-printMat(mat)
+# print("====================")
+# mat = xorMat(keyVect, textMat)
+# printMat(mat)
 
-print("====================")
-shiftMat(mat)
-printMat(mat)
+# print("====================")
+# mat = subMat(mat)
+# printMat(mat)
 
-print("====================")
-mat = MixColumn(Mixer, mat)
-printMat(mat)
+# print("====================")
+# shiftMat(mat)
+# printMat(mat)
+
+# print("====================")
+# mat = MixColumn(Mixer, mat)
+# printMat(mat)
 
