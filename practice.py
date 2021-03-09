@@ -77,6 +77,14 @@ def textToBitMatrix(text):
     mat = [ [ BitVector(intVal=ret[j*4 + i], size=8 ) for i in range(0, 4)] for j in range(0, 4)]
     return mat
 
+def matToText(mat):
+    mat = transposeMat(mat)
+    cipher = ""
+    for x in mat:
+        for y in x:
+            cipher += y.getHexStringFromBitVector()
+    return cipher
+
 def xorMat(a, b):
     c = copy.deepcopy(a)
     for i in range(0, len(a)):
@@ -171,8 +179,15 @@ def encrypt(text, key):
     stateMat = subMat(stateMat)
     stateMat = shiftMat(stateMat)
     stateMat = xorMat(stateMat, transposeMat( enKey.getKey(10) ) )
-    printMat(stateMat)    
+    printMat(stateMat)
+    print(matToText(stateMat))   
+
+
+
 encrypt(text, key)
+
+
+
 # test = EncryptionKey(key)
 
 # keyVect = test.getKey(0)
