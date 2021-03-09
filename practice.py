@@ -189,11 +189,6 @@ class EncryptionKey:
             for y in x:
                 print(y.getHexStringFromBitVector() , end = " ")
 
-# key = "54 68 61 74 73 20 6D 79 20 4B 75 6E 67 20 46 75"
-key = "Thats my Kung Fu"
-text = "Two One Nine Two"
-
-
 def encrypt(text, key):
     textMat = transposeMat(textToBitMatrix(text) )
     enKey = EncryptionKey(key)
@@ -227,6 +222,37 @@ def decrypt(text, key):
     stateMat = xorMat(stateMat, transposeMat( enKey.getKey(0) ) )
     return (matToText( transposeMat( stateMat ) ))
 
+# key = "Thats my Kung Fu"
+# text = "Two One Nine Two"
 
-cipher = encrypt(text, key)
-print(decrypt(cipher, key))
+# cipher = encrypt(text, key)
+# print(decrypt(cipher, key))
+
+# key = "BUET CSE16 Batch"
+key = ""
+
+hexKey = "44656372797074205461736b20536978"
+for i in range(0, 16):
+    key += chr(int( hexKey[i*2 : i*2 + 2], 16))
+
+text = "182e0afe67094cb70f2a7dc74f7e0076"
+
+texts = ["182e0afe67094cb70f2a7dc74f7e0076", 
+"552456c820d6029f9519a7f8a020a6dc",
+"6707ec0f7e1eb439f3ea0db53ee60c95",
+"8d67693151bba8ec61dacbd83e99c6ef", 
+"9daa26069685e2284ba264a9b7ad9a56", 
+"d6203cc8ab315c34de944af524b12d65", 
+"85ccfb0c6fab4b7006266d66280ad44e", 
+"a44dbe21d269f3e030129f49851711a6", 
+"dd7b9f55dfd4c5dcee355973fc2ce648", 
+"6d7df8de352e73d434ee9932477226e4", 
+"2012d10b974dfa66366f9830b0fb62e6", 
+"9dfde63105ae1d2eccb316e4f57ceb55",
+"eef9677d5dc267f8ece3d2fa30d2c06c"]
+
+for j in range(0, 13):
+    cipher = ""
+    for i in range(0, 16):
+        cipher += chr(int( texts[j][i*2 : i*2 + 2], 16))
+    print(decrypt(cipher, key), end = "")
