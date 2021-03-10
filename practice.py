@@ -1,5 +1,6 @@
 from BitVector import *
 import copy
+import time
 
 Sbox = (
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -142,8 +143,6 @@ def MixColumn(a, b):
                 x[i][j] ^= a[i][k].gf_multiply_modular(b[k][j], AES_modulus, 8)
     return x
 
-
-
 class EncryptionKey:
     def __init__(self, key):
         self.keys = []
@@ -193,19 +192,14 @@ def encrypt(text, key):
     textMat = transposeMat(textToBitMatrix(text) )
     enKey = EncryptionKey(key)
     stateMat = xorMat(textMat, transposeMat( enKey.getKey(0) ) )
-    # printMat(stateMat)
-    # print("=================================")
     for round in range(1, 10):
         stateMat = subMat(stateMat, Sbox)
         stateMat = shiftMatLeft(stateMat)
         stateMat = MixColumn(Mixer, stateMat)
         stateMat = xorMat(stateMat, transposeMat( enKey.getKey(round) ) )
-        # printMat(stateMat)
-        # print("=================================")
     stateMat = subMat(stateMat, Sbox)
     stateMat = shiftMatLeft(stateMat)
     stateMat = xorMat(stateMat, transposeMat( enKey.getKey(10) ) )
-    # printMat(stateMat)
     return (matToText( transposeMat( stateMat ) ))   
 
 def decrypt(text, key):
@@ -225,34 +219,32 @@ def decrypt(text, key):
 # key = "Thats my Kung Fu"
 # text = "Two One Nine Two"
 
+# start_time = time.time()
 # cipher = encrypt(text, key)
+# print(time.time() - start_time)
+
 # print(decrypt(cipher, key))
+# print(time.time() - start_time)
 
-# key = "BUET CSE16 Batch"
-key = ""
 
-hexKey = "44656372797074205461736b20536978"
+print("Hello world")
+
+addTo = BitVector(hexstring = "63")
+
 for i in range(0, 16):
-    key += chr(int( hexKey[i*2 : i*2 + 2], 16))
-
-text = "182e0afe67094cb70f2a7dc74f7e0076"
-
-texts = ["182e0afe67094cb70f2a7dc74f7e0076", 
-"552456c820d6029f9519a7f8a020a6dc",
-"6707ec0f7e1eb439f3ea0db53ee60c95",
-"8d67693151bba8ec61dacbd83e99c6ef", 
-"9daa26069685e2284ba264a9b7ad9a56", 
-"d6203cc8ab315c34de944af524b12d65", 
-"85ccfb0c6fab4b7006266d66280ad44e", 
-"a44dbe21d269f3e030129f49851711a6", 
-"dd7b9f55dfd4c5dcee355973fc2ce648", 
-"6d7df8de352e73d434ee9932477226e4", 
-"2012d10b974dfa66366f9830b0fb62e6", 
-"9dfde63105ae1d2eccb316e4f57ceb55",
-"eef9677d5dc267f8ece3d2fa30d2c06c"]
-
-for j in range(0, 13):
-    cipher = ""
-    for i in range(0, 16):
-        cipher += chr(int( texts[j][i*2 : i*2 + 2], 16))
-    print(decrypt(cipher, key), end = "")
+    for j in range(0, 16):
+        val = 16*i + j
+        vector = BitVector(intVal = val, size = 8)
+        if val != 0:
+            vector = vector.gf_MI( AES_modulus , 8)
+        s1 = copy.deepcopy(vector)
+        s2 = copy.deepcopy(vector)
+        s3 = copy.deepcopy(vector)
+        s4 = copy.deepcopy(vector)
+        s1.__lshift__(1)
+        s2.__lshift__(2)
+        s3.__lshift__(3)
+        s4.__lshift__(4)
+        ans = vector ^ s1 ^ s2 ^ s3 ^ s4 ^ addTo
+        print(ans.get_hex_string_from_bitvector(), end = " ")
+    print()        
