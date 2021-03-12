@@ -61,14 +61,11 @@ def printMat(a):
 
     
 def textToBitMatrix(text):
-    ret = []
     mat = []
     while len(text) < 16:
         text = text + '0'
     text = text[0:16]
-    for i in range(0, len(text)):
-        ret.append(ord(text[i]))
-    mat = [ [ BitVector(intVal=ret[j*4 + i], size=8 ) for i in range(0, 4)] for j in range(0, 4)]
+    mat = [ [ BitVector(intVal=text[j*4 + i], size=8 ) for i in range(0, 4)] for j in range(0, 4) ]
     return mat
 
 def matToText(mat):
@@ -77,6 +74,25 @@ def matToText(mat):
         for y in x:
             cipher += chr(int(y.getHexStringFromBitVector(), 16))
     return cipher
+
+def matToByte(mat):
+    byte = []
+    for x in mat:
+        for y in x:
+            byte.append(int(y.getHexStringFromBitVector(), 16)) 
+    return byte
+
+def ListToString(bList):
+    text = ""
+    for i in range(0, len(bList)):
+        text += chr(bList[i])
+    return text
+
+def bytesToList(byte):
+    res = []
+    for i in range(0, len(byte)):
+        res.append(byte[i])
+    return res
 
 def xorMat(a, b):
     c = copy.deepcopy(a)
@@ -155,33 +171,41 @@ class EncryptionKey:
                 print(y.getHexStringFromBitVector() , end = " ")
 
 def encrypt(text, key):
-    textMat = transposeMat(textToBitMatrix(text) )
     enKey = EncryptionKey(key)
-    stateMat = xorMat(textMat, transposeMat( enKey.getKey(0) ) )
-    for round in range(1, 10):
+    cipherList = []
+    while len(text)%16 != 0:
+        text.append(32)
+    for i in range(0, len(text)//16):
+        textMat = transposeMat(textToBitMatrix(text[ i*16 : (i+1)*16 ]) )
+        stateMat = xorMat(textMat, transposeMat( enKey.getKey(0) ) )
+        for round in range(1, 10):
+            stateMat = subMat(stateMat, Sbox)
+            stateMat = shiftMatLeft(stateMat)
+            stateMat = MixColumn(Mixer, stateMat)
+            stateMat = xorMat(stateMat, transposeMat( enKey.getKey(round) ) )
         stateMat = subMat(stateMat, Sbox)
         stateMat = shiftMatLeft(stateMat)
-        stateMat = MixColumn(Mixer, stateMat)
-        stateMat = xorMat(stateMat, transposeMat( enKey.getKey(round) ) )
-    stateMat = subMat(stateMat, Sbox)
-    stateMat = shiftMatLeft(stateMat)
-    stateMat = xorMat(stateMat, transposeMat( enKey.getKey(10) ) )
-    return (matToText( transposeMat( stateMat ) ))   
+        stateMat = xorMat(stateMat, transposeMat( enKey.getKey(10) ) )
+        # cipher += (matToText( transposeMat( stateMat ) ))
+        cipherList += ( matToByte( transposeMat( stateMat ) ) )
+    return cipherList
 
 def decrypt(text, key):
-    textMat = transposeMat(textToBitMatrix(text) )
+    plainList = []
     enKey = EncryptionKey(key)
-    stateMat = xorMat(textMat, transposeMat( enKey.getKey(10) ) )
-    for round in range(1, 10):
+    for i in range(0, len(text)//16):
+        textMat = transposeMat(textToBitMatrix(text[i*16 : (i+1)*16 ] ) )        
+        stateMat = xorMat(textMat, transposeMat( enKey.getKey(10) ) )
+        for round in range(1, 10):
+            stateMat = shiftMatRight(stateMat)
+            stateMat = subMat(stateMat, InvSbox)
+            stateMat = xorMat(stateMat, transposeMat( enKey.getKey(10 - round) ) ) 
+            stateMat = MixColumn(InvMixer, stateMat)
         stateMat = shiftMatRight(stateMat)
         stateMat = subMat(stateMat, InvSbox)
-        stateMat = xorMat(stateMat, transposeMat( enKey.getKey(10 - round) ) ) 
-        stateMat = MixColumn(InvMixer, stateMat)
-    stateMat = shiftMatRight(stateMat)
-    stateMat = subMat(stateMat, InvSbox)
-    stateMat = xorMat(stateMat, transposeMat( enKey.getKey(0) ) )
-    return (matToText( transposeMat( stateMat ) ))
-
+        stateMat = xorMat(stateMat, transposeMat( enKey.getKey(0) ) )
+        plainList += matToByte( transposeMat( stateMat ) )
+    return plainList
 
 def genSBox():
     addTo = BitVector(hexstring = "63")
@@ -223,23 +247,49 @@ genSBox()
 genInvSBox()
 
 key = "Thats my Kung Fu"
-text = "Two One Nine Two"
+text = "Two One Nine Two 5 H"
+
 
 print("Key : ", end = "")
 key = input()
+
+enKey = EncryptionKey( bytesToList( key.encode() ))
+
+for i in range(0, 11):
+    print("Round " + str(i) + ":", end = " ")
+    enKey.print(i)
+    print()
 print("Encrypt: (1) Text (2) File")
 
 opt = int(input())
 if(opt == 1):
     text = input()
+    cipher = encrypt( bytesToList(text.encode() ),  bytesToList(key.encode() ) )
+    print("Cipher: " + ListToString(cipher ))
+    plain = decrypt( cipher,  bytesToList(key.encode() ) )
+    print("Plain: " + ListToString( plain ) )
+else:
+    print("File name: ")
+    fileName = input()
+    file = open(fileName, "rb")
+    fileEn = open("encrypted", "wb")
+    file2 = open("Dec" + fileName, "wb")
 
-cipher = encrypt(text, key)
+    byte = file. read()
+    file.close()
+    length = bytesToList(str(len(byte)).encode() )
+    byte = encrypt( bytesToList( byte ),  bytesToList(key.encode() ) )
+    lengthCipher = encrypt( length,  bytesToList(key.encode() ) )
 
-print(cipher)
+    cipher = bytes(lengthCipher + byte)
+    fileEn.write(bytes(cipher))
+    fileEn.close()
 
-# start_time = time.time()
-# cipher = encrypt(text, key)
-# print(time.time() - start_time)
+    fileEnRead = open("encrypted", "rb")    
+    plain = decrypt( bytesToList( fileEnRead.read() ),  bytesToList(key.encode() ) )
+    fileEnRead.close()
 
-# print(decrypt(cipher, key))
-# print(time.time() - start_time)
+    leng = int( ListToString(plain[0:16]) )
+    plain = plain[16: leng + 16]
+    file2.write(bytes(plain ))
+    file2.close()
